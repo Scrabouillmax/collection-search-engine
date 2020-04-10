@@ -53,6 +53,9 @@ def match(inverted_index, query_tokens, nresults=20):
             # token not found in collection inverted index.
             pass
 
+    if len(documents_per_token) == 0:
+        return []
+
     unique_doc_names = set.intersection(*[set(docs) for docs in documents_per_token])
     union = len(unique_doc_names) < nresults
     placeholder_weight = 100
