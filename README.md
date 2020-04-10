@@ -26,7 +26,11 @@ The following steps need to be run for both.
 >>> nltk.download('stopwords')
 >>> nltk.download('tagsets')
 >>> nltk.download("wordnet")
+>>> nltk.download('averaged_perceptron_tagger')
 ```
+
+- Download the original collection at http://web.stanford.edu/class/cs276/pa/pa1-data.zip
+- Unzip it and place it at the project root.
 
 ### Quick start setup
 
@@ -38,10 +42,10 @@ The following steps need to be run for both.
 - Once the application has started, go to http://localhost:5000/ in a browser to make some queries!
 - NOTE: the first query is usually ~10 times slower than the following queries.
 
+By default, the engine returns the top 20 matches. This can be changed in the config.py file.
+
 ### Complete setup (with local inverted index computation)
 
-- Download the original collection at http://web.stanford.edu/class/cs276/pa/pa1-data.zip
-- Unzip it and place it at the project root.
 - In config.py, change `compute_inverted_index` to `True`
 - Run the application from the project root: ```python3 app.py```
 - This will take ~40 minutes to process the collection and build the inverted index. 
@@ -79,8 +83,16 @@ The inverted index computation and saving takes less than 10 minutes on a standa
     - Stop words are removed
     - Words are lemmatized with the same procedure as for documents
     - Duplicated tokens are removed
-- For each word in the query, relevant documents are retrieved from the inverted index.
-- Documents for each words are combined and sorted by relevance. <TODO detail here>
+- For each word in the query, relevant documents and their TF-IDF weight for the word are retrieved from the inverted index.
+- Documents for each words are combined and sorted by relevance. 
+
+The procedure is the following:
+- Compute the intersection of the retrieved documents with their weight for each term.
+    Union is used if there is not enough documents in the intersection.
+- Score each document with the harmonic mean of its TF-IDF weights for the different query terms.
+    When the document does not contain a query term, the default weight used is half the minimum weight
+    of all the retrieved documents.
+- Return the <nresults> top documents (i.e. with largest harmonic mean score).
 
 ### Corpus statistics
 

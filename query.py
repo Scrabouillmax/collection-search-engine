@@ -1,4 +1,6 @@
 from time import time
+from itertools import chain
+from scipy.stats import hmean
 
 from config import config
 from iterator import iterator
@@ -24,7 +26,14 @@ def preprocess_query(query):
 
 def match(inverted_index, query_tokens, nresults=20):
     """
-    TODO improve matching and write description
+    Match a query against the collection inverted index.
+    Matching procedure:
+    - Compute intersection of corresponding documents with their weight for each term.
+        Union is used if there is not enough documents in the intersection
+    - Score each document with the harmonic mean of its weights for the different terms.
+        When the document does not contain a query term, the default weight used is half the minimum weight
+        of all the matched documents.
+    - Return the <nresults> top documents (i.e. with largest score).
     :param inverted_index: Inverted index representation of the collection.
     :param query_tokens: List of tokens, the pre-processed query.
     :param nresults: Maximum number of results to return
@@ -32,28 +41,43 @@ def match(inverted_index, query_tokens, nresults=20):
     """
     print("Matching documents for query: {}".format(" ".join(query_tokens)))
     t = time()
-    matching_documents = []
+
+    documents_per_token = []
+    weights_per_token = []
     for token in query_tokens:
         try:
-            matching_documents += inverted_index[token]
-        except Exception:
+            docs_weights = inverted_index[token]
+            documents_per_token.append([doc for doc, _ in docs_weights])
+            weights_per_token.append([weight for _, weight in docs_weights])
+        except:
+            # token not found in collection inverted index.
             pass
 
-    unique_docs = {}
-    for doc, weight in matching_documents:
-        if doc in unique_docs:
-            unique_docs[doc] = max(unique_docs[doc], weight)
-        else:
-            unique_docs[doc] = weight
+    unique_doc_names = set.intersection(*[set(docs) for docs in documents_per_token])
+    union = len(unique_doc_names) < nresults
+    placeholder_weight = 100
+    if union:
+        unique_doc_names = set.union(*[set(docs) for docs in documents_per_token])
+        for weight in chain(*weights_per_token):
+            if weight < placeholder_weight:
+                placeholder_weight = weight
+        placeholder_weight /= 2
 
-    unique_docs_list = unique_docs.items()
-    unique_docs_list = sorted(unique_docs_list, key=lambda x: x[1], reverse=True)
+    weights_per_doc = {name: [] for name in unique_doc_names}
+    for name, weight in zip(chain(*documents_per_token), chain(*weights_per_token)):
+        if union or name in unique_doc_names:
+            weights_per_doc[name].append(weight)
 
-    unique_docs_list = unique_docs_list[:nresults]
+    results = []
+    for name, weights in weights_per_doc.items():
+        if union and len(weights) < len(documents_per_token):
+            weights += [placeholder_weight] * (len(documents_per_token) - len(weights))
+        results.append((name, hmean(weights)))
 
-    index_to_name = list(iterator(config["preprocessed_data"]))
+    results = sorted(results, key=lambda res: res[1], reverse=True)[:nresults]
 
-    result = [(index_to_name[i], w) for i, w in unique_docs_list]
+    index_to_name = list(iterator(config["original_data"]))
+    results = [(index_to_name[i], w) for i, w in results]
 
-    print("Found {} documents in {}s".format(len(result), time() - t))
-    return result
+    print("Found {} documents in {}s".format(len(results), time() - t))
+    return results

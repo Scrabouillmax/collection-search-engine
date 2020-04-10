@@ -26,7 +26,17 @@ def query():
         abort(400)
     q = request.args.get('q')
     tokens = preprocess_query(q)
-    results = match(inverted_index, tokens, nresults=config["n_results"])
+    documents = match(inverted_index, tokens, nresults=config["n_results"])
+    top_match = ""
+    if len(documents) > 0:
+        f = open("{}{}".format(config["original_data"], documents[0][0]), "r")
+        top_match = f.read()
+        f.close()
+
+    results = {
+        "documents": documents,
+        "top_match": top_match,
+    }
     return jsonify(results)
 
 

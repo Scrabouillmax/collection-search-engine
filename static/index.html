@@ -19,6 +19,7 @@
                 type: 'GET',
                 beforeSend: function () {
                     $("#results").empty();
+                    $("#top-match").empty();
                     const status = $("#status");
                     status.empty();
                     status.append("<p>Processing query...</p>");
@@ -26,7 +27,7 @@
                 },
                 success: function (data) {
                     const resultsList = $("#results");
-                    const results = data.map(([name, weight]) => `<li>[Pertinence: ${Math.round(weight * 100)}] - ${name}</li>`);
+                    const results = data.documents.map(([name, weight]) => `<li>[Pertinence: ${(weight * 100).toFixed(2)}] - ${name}</li>`);
 
                     const duration = ((new Date().getTime() - time) / 1000).toFixed(2);
                     const status = $("#status");
@@ -35,6 +36,11 @@
 
                     resultsList.empty();
                     resultsList.append(results);
+
+                    const topMatch = $("#top-match");
+                    topMatch.empty();
+                    topMatch.append("<h1>Top match</h1>");
+                    topMatch.append(`<textarea readonly style="width: 100%; height: 100%;">${data.top_match}</textarea>`)
                 },
                 error: function (e) {
                     console.log("error", e);
@@ -48,9 +54,10 @@
 </script>
 <form id="form">
   <label for="search-input">Enter search:</label>
-  <input id="search-input" type="text" name="q"/>
+  <input id="search-input" type="text" name="q" style="width: 100%"/>
 </form>
 <div id="status"></div>
 <ul id="results"></ul>
+<div id="top-match"></div>
 </body>
 </html>
