@@ -1,3 +1,8 @@
+# Data
+pa1-data/
+preprocessed/
+inverted_index*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

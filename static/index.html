@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Stanford Information Retrieval collection browser</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+</head>
+<body>
+<script type="text/javascript">
+    $(document).ready(function () {
+        const form = $('#form');
+        let time = new Date().getTime();
+
+        form.on('submit', function (e) {
+            e.preventDefault();
+
+            $.ajax({
+                url: `/query?${form.serialize()}`,
+                type: 'GET',
+                beforeSend: function () {
+                    $("#results").empty();
+                    const status = $("#status");
+                    status.empty();
+                    status.append("<p>Processing query...</p>");
+                    time = new Date().getTime();
+                },
+                success: function (data) {
+                    const resultsList = $("#results");
+                    const results = data.map(([name, weight]) => `<li>[Pertinence: ${Math.round(weight * 100)}] - ${name}</li>`);
+
+                    const duration = ((new Date().getTime() - time) / 1000).toFixed(2);
+                    const status = $("#status");
+                    status.empty();
+                    status.append(`<p>Fetched ${results.length} results in ${duration} seconds.</p>`);
+
+                    resultsList.empty();
+                    resultsList.append(results);
+                },
+                error: function (e) {
+                    console.log("error", e);
+                    const status = $("#status");
+                    status.empty();
+                    status.append("<p>An error happened...</p>");
+                }
+            });
+        });
+    });
+</script>
+<form id="form">
+  <label for="search-input">Enter search:</label>
+  <input id="search-input" type="text" name="q"/>
+</form>
+<div id="status"></div>
+<ul id="results"></ul>
+</body>
+</html>
